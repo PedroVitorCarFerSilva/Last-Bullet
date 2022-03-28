@@ -12,7 +12,9 @@ altura = 480
 a_dallas = 260
 b_dallas = 292
 
-tela = pygame.display.set_mode((largura, altura))
+modojanela = True
+
+tela = pygame.display.set_mode((largura, altura),pygame.RESIZABLE | pygame.SCALED)
 pygame.display.set_caption('Last Bullet')
 pygame.display.set_icon(pygame.image.load('Dallas/face.png'))
 
@@ -43,6 +45,7 @@ class Dallas(pygame.sprite.Sprite):
                 self.movright = True
         if self.rect.x >= -10:
             if pygame.key.get_pressed()[pygame.K_a]:
+                
                 self.rect.x -= self.speed
                 self.movleft = True
                 self.movright = False
@@ -252,13 +255,14 @@ while True:
             if event.button == 1:
                 bullet.add(dallas.atirar())
                 pygame.mixer.Sound.play(shoot)
-        if event.type == KEYDOWN and event.key == pygame.K_p:
-            if pause:
-                pause = False
-            else:
-                pause = True
-                
-
+        if event.type == KEYDOWN:
+            if event.key == pygame.K_p:
+                pygame.mixer.Sound.play(startm)
+                if pause:
+                    pause = False
+                else:
+                    pause = True
+           
     if start:
         if dallas.life >= 1:
             
