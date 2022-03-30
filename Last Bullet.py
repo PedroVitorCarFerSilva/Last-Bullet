@@ -34,6 +34,7 @@ class Dallas(pygame.sprite.Sprite):
         self.life = 100
         self.points = 0
         self.cooldown = 0
+        self.regeneration = 0
 
     def movemento(self):
         self.movleft = False
@@ -51,6 +52,8 @@ class Dallas(pygame.sprite.Sprite):
 
     def update(self):
         self.movemento()
+        if self.life < 100:
+            self.life += self.regeneration
         if self.movright and self.movleft == False:
             self.atual += 0.4
             if self.atual >= len(self.sprites):
@@ -287,8 +290,11 @@ class UfoBall(pygame.sprite.Sprite):
     def __init__(self, a_ufob, b_ufob):
         super().__init__()
         self.sprites = []
+        self.zenmode = []
         sprite_sheet = pygame.image.load('Ufo/ufoball.png')
-        self.zenmode = [sprite_sheet.subsurface((192,0),(48,25))]
+        for i in range(4,8):
+            zensheet = sprite_sheet.subsurface((i * 48,0),(48,25))
+            self.zenmode.append(zensheet)
         for i in range(4):
             sheet = sprite_sheet.subsurface((i * 48,0),(48,25))
             self.sprites.append(sheet)
@@ -349,7 +355,7 @@ class Ground(pygame.sprite.Sprite):
         a_ground = posição * 64
         b_ground = altura - 128
         self.rect = self.image.get_rect(topleft = (a_ground,b_ground))
-         
+
 ufo = Ufo(randint(10,600), -70)
 ufo_s = pygame.sprite.Group()
 
@@ -386,10 +392,6 @@ titulo = pygame.transform.scale(titulo, (largura, altura))
 
 relogio = pygame.time.Clock()
 
-#playbill
-#rockwell
-#orbitron
-#bungeeinline
 font_points = pygame.font.SysFont('powergreensmall',40,True,False)
 font_score = pygame.font.SysFont('powergreensmall',60,True,False)
 
@@ -397,8 +399,6 @@ start = False
 pause = False
 
 score = 0
-
-difc = 10
 
 shoot = pygame.mixer.Sound('Music/shoot.wav')
 destroy = pygame.mixer.Sound('Music/destroy.wav')
@@ -436,25 +436,35 @@ while True:
                 dallas.life = 0
             elif dallas.points >= 30000:
                 difc = [10,70,100]
+                dallas.regeneration = 0.25
             elif dallas.points >= 20000:
                 difc = [10,80,100]
+                dallas.regeneration = 0.2
             elif dallas.points >= 13000:
                 difc = [10,90,150]
+                dallas.regeneration = 0.2
             elif dallas.points >= 10000:
                 difc = [11,100,150]
+                dallas.regeneration = 0.15
             elif dallas.points >= 7000:
                 difc = [12,120,200]
+                dallas.regeneration = 0.15
             elif dallas.points >= 5000:
                 difc = [13,140,200]
+                dallas.regeneration = 0.1
             elif dallas.points >= 3500:
                 difc = [14,160,200]
+                dallas.regeneration = 0.1
             elif dallas.points >= 2000:
                 difc = [15,180,300]
+                dallas.regeneration = 0.05
             elif dallas.points >= 1000:
                 difc = [15,200,0]
+                dallas.regeneration = 0.05
             else:
                 difc = [10,0,0]
-
+                dallas.regeneration = 0
+            
             if dallas.points > score:
                 score = dallas.points
                 
