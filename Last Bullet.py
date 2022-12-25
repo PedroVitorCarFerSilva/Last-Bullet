@@ -97,8 +97,6 @@ class Dallas(pygame.sprite.Sprite):
             self.image = pygame.transform.flip(self.image,True,False)
         self.dano = 1
 
-        print(self.life)
-
     def atirar(self):
         self.tiro = Bullet(self.rect.centerx, self.rect.centery+12, pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
         return self.tiro
@@ -584,19 +582,19 @@ while True:
                 difc = [1,0,0]
                 dallas.regeneration = 0.2
             elif dallas.points >= 7000:
-                difc = [12,145,270]
+                difc = [12,155,280]
                 dallas.regeneration = 0.2
             elif dallas.points >= 5000:
-                difc = [13,160,280]
+                difc = [13,170,290]
                 dallas.regeneration = 0.1
             elif dallas.points >= 3500:
-                difc = [14,175,290]
+                difc = [14,195,300]
                 dallas.regeneration = 0.1
             elif dallas.points >= 2000:
-                difc = [15,190,300]
+                difc = [15,200,310]
                 dallas.regeneration = 0.05
             elif dallas.points >= 1000:
-                difc = [15,200,0]
+                difc = [15,210,0]
                 dallas.regeneration = 0.05
             else:
                 difc = [10,0,0]
