@@ -40,6 +40,7 @@ class Dallas(pygame.sprite.Sprite):
         self.movright = False
         self.dano = 1
         self.framespeed = 0.4
+        self.flip = False
 
     def movemento(self):
         self.movleft = False
@@ -49,11 +50,13 @@ class Dallas(pygame.sprite.Sprite):
                 self.rect.x += self.speed
                 self.movleft = False
                 self.movright = True
+                self.flip = False
         if self.rect.x >= -10:
             if pygame.key.get_pressed()[pygame.K_a]:             
                 self.rect.x -= self.speed
                 self.movleft = True
                 self.movright = False
+                self.flip = True
         if pygame.mouse.get_pressed() == (1,0,0) and start and dallas.life >= 1 and pause == False and self.shotcooldown == 0:
             bullet.add(self.atirar())
             pygame.mixer.Sound.play(shoot)
@@ -90,10 +93,7 @@ class Dallas(pygame.sprite.Sprite):
             pass
         self.image = self.sprites[int(self.atual)]
         self.image = pygame.transform.scale(self.image,(24*3, 20*3))
-        if self.movright and self.movleft == False:
-            self.image = pygame.transform.scale(self.image,(24*3, 20*3))
-        elif self.movleft and self.movright == False:
-            self.image = pygame.transform.scale(self.image,(24*3, 20*3))
+        if self.flip:
             self.image = pygame.transform.flip(self.image,True,False)
         self.dano = 1
 
