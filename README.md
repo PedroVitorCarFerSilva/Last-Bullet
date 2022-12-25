@@ -14,7 +14,7 @@
 - Tecla *D* move o personagem para a direita
 - Tecla *A* move o personagem para a esquerda
 - Tecla *P* pausa e retoma o jogo
-- Botão esquerdo do mouse atira os projéteis
+- Botão esquerdo pressionado atira os projéteis
 
 ## Como jogar
 
