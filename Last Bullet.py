@@ -18,6 +18,8 @@ tela = pygame.display.set_mode((largura, altura),pygame.RESIZABLE | pygame.SCALE
 pygame.display.set_caption('Last Bullet')
 pygame.display.set_icon(pygame.image.load('Dallas/face.png'))
 
+pygame.mouse.set_visible(False)
+
 class Dallas(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
@@ -131,6 +133,17 @@ class Gun(pygame.sprite.Sprite):
                 self.rect.centery += ((angulo*-58)-180)/4.5
             else:
                 self.rect.centery += ((angulo*-58)+180)/240
+
+class Aim(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.image.load('Dallas/aim.png')
+        self.image = pygame.transform.scale(self.image, (12*3, 12*3))
+        self.rect = self.image.get_rect(center = (x, y))
+
+    def update(self):
+        self.rect.centerx = pygame.mouse.get_pos()[0]
+        self.rect.centery = pygame.mouse.get_pos()[1]
 
 class Life(pygame.sprite.Sprite):
     def __init__(self):
@@ -525,6 +538,12 @@ dallas_s.add(dallas)
 
 gun_s = pygame.sprite.Group()
 
+aim = Aim(pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
+aim_s = pygame.sprite.Group()
+aim_s.add(aim)
+
+print(pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
+
 floor_s = pygame.sprite.Group()
 for i in range(10):
     ground = Ground(i)
@@ -569,8 +588,8 @@ while True:
                 if pause:
                     pause = False
                 else:
-                    pause = True                
-           
+                    pause = True
+                    
     if start:
         if dallas.life >= 1:
             
@@ -676,5 +695,9 @@ while True:
         if pygame.key.get_pressed()[K_SPACE]:
             pygame.mixer.Sound.play(startm)
             start = True
+
+    if pygame.mouse.get_focused():
+        aim_s.draw(tela)
+    aim_s.update()
     
     pygame.display.flip()
