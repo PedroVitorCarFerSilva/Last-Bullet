@@ -7,12 +7,14 @@ from random import randint
 pygame.init()
 
 largura = 640
-
 altura = 480
+
 a_dallas = 260
 b_dallas = 292
 
 modojanela = True
+
+boss = False
 
 tela = pygame.display.set_mode((largura, altura),pygame.RESIZABLE | pygame.SCALED)
 pygame.display.set_caption('Last Bullet')
@@ -43,18 +45,19 @@ class Dallas(pygame.sprite.Sprite):
         self.dano = 1
         self.framespeed = 0.4
         self.flip = False
+        self.bonusboss = 0
 
     def movemento(self):
         self.movleft = False
         self.movright = False
         if self.rect.x <= largura-62:
-            if pygame.key.get_pressed()[pygame.K_d]:
+            if pygame.key.get_pressed()[pygame.K_d] or pygame.key.get_pressed()[pygame.K_RIGHT]:
                 self.rect.x += self.speed
                 self.movleft = False
                 self.movright = True
                 self.flip = False
         if self.rect.x >= -10:
-            if pygame.key.get_pressed()[pygame.K_a]:             
+            if pygame.key.get_pressed()[pygame.K_a] or pygame.key.get_pressed()[pygame.K_LEFT]:             
                 self.rect.x -= self.speed
                 self.movleft = True
                 self.movright = False
@@ -228,14 +231,20 @@ class Ufo(pygame.sprite.Sprite):
         self.framespeed = 0.2
 
     def action(self):
-        if self.rect.y <= 290:
-            if self.rect.x < dallas.rect.x:
-                self.rect.x += self.speed
-            elif self.rect.x > dallas.rect.x:
-                self.rect.x -= self.speed
-            self.rect.y += self.downspeed
+        if boss:
+            self.rect.y -= self.downspeed*2
+            if self.rect.y < -100:
+                self.kill()
+                pass
         else:
-            dallas.points -= 1
+            if self.rect.y <= 290:
+                if self.rect.x < dallas.rect.x:
+                    self.rect.x += self.speed
+                elif self.rect.x > dallas.rect.x:
+                    self.rect.x -= self.speed
+                self.rect.y += self.downspeed
+            else:
+                dallas.points -= 1
         if self.rect.colliderect(dallas.rect) and dallas.hitcooldown == 0:
             dallas.life -= 5
             dallas.hitcooldown = 10
@@ -500,6 +509,103 @@ class UfoBall(pygame.sprite.Sprite):
             pass
         self.image = self.sprites[int(self.atual)]
         self.image = pygame.transform.scale(self.image,(48*3, 25*3))
+
+class UfoBoss(pygame.sprite.Sprite):
+    def __init__(self, a_ufobs, b_ufobs):
+        super().__init__()
+        self.size = 4
+        self.sprites = []
+        sprite_sheet = pygame.image.load('Ufo/ufoboss.png')
+        for i in range(5):
+            sheet = sprite_sheet.subsurface((i * 32,0),(32,32))
+            self.sprites.append(sheet)
+        self.atual = 0
+        self.image = self.sprites[self.atual]
+        self.image = pygame.transform.scale(self.image,(32*self.size, 32*self.size))
+        self.life = 200
+        
+        self.float = 8
+        self.an = 0
+        self.died = False
+
+        self.rotation = 0
+        
+        self.rect = self.image.get_rect(center = (a_ufobs,b_ufobs))
+
+        self.collide = True
+        self.framespeed = 0.2
+
+        self.dano = 1
+        
+    def action(self):
+        if self.died:
+            self.collide = False
+            self.rect.centery += 8
+            self.rect.centerx += 1.8
+            self.rotation += 1
+        else:
+            if self.rect.centery >= 90:
+                self.an += 10
+                seno = math.sin(math.radians(self.an))
+                self.rect.centery = seno*self.float+100
+            else:
+                self.rect.centery += 5
+
+    def spawn(self):
+        return UfoBoss(largura/2, -110)
+
+    def morte(self, score):
+        if self.collide:
+            if pygame.sprite.spritecollide(self, bullet, True):
+                self.dano = 0
+                self.atual = 4
+                pygame.mixer.Sound.play(destroy)
+                self.life -= 25
+                if self.life==0:
+                    self.atual = 0
+        if self.life <= 0:
+            self.died = True
+            self.size -= 0.09
+            if self.rect.centery >= 400:
+                dallas.bonusboss += score+500
+                dallas.points = 0
+                pygame.mixer.Sound.play(boom)
+                self.kill()
+                pass
+
+    def update(self, score):
+        self.action()
+        self.morte(score)
+        self.atual += self.framespeed
+        if self.atual >= len(self.sprites) - self.dano:
+            self.atual = 0
+            self.dano = 1
+            pass
+        self.image = self.sprites[int(self.atual)]
+        self.image = pygame.transform.scale(self.image,(32*self.size, 32*self.size))
+        self.image = pygame.transform.rotate(self.image, self.rotation)
+
+class Explosion(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.sprites = []
+        sprite_sheet = pygame.image.load('Background/Explosao.png')
+        for i in range(13):
+            sheet = sprite_sheet.subsurface((i * 160,0),(160,88))
+            self.sprites.append(sheet)
+        self.atual = 0
+        self.framespeed = 0.3
+        self.image = self.sprites[self.atual]
+        self.image = pygame.transform.scale(self.image,(160*4, 88*4))
+        self.rect = self.image.get_rect(topleft = (0,0))
+
+    def update(self):
+        self.atual += self.framespeed
+        if self.atual >= len(self.sprites):
+            self.atual = 0
+            pass
+        self.image = self.sprites[int(self.atual)]
+        self.image = pygame.transform.scale(self.image,(160*4, 88*4))
         
 class Ground(pygame.sprite.Sprite):
     def __init__(self, posição):
@@ -526,7 +632,14 @@ ufoshield_s = pygame.sprite.Group()
 ufoball = UfoBall(randint(-10, 550), -85)
 ufoball_s = pygame.sprite.Group()
 
+ufoboss = UfoBoss(largura/2, 110)
+ufoboss_s = pygame.sprite.Group()
+
 bullet = pygame.sprite.Group()
+
+explosion = Explosion()
+explosion_s = pygame.sprite.Group()
+explosion_s.add(explosion)
 
 life = Life()
 life_s = pygame.sprite.Group()
@@ -564,12 +677,16 @@ font_score = pygame.font.SysFont('powergreensmall',60,True,False)
 start = False
 pause = False
 
+bosscount = 2
+deathbosscheck = 0
+
 score = 0
 
 shoot = pygame.mixer.Sound('Music/shoot.wav')
 destroy = pygame.mixer.Sound('Music/destroy.wav')
 startm = pygame.mixer.Sound('Music/start.wav')
 takehit = pygame.mixer.Sound('Music/hit.wav')
+boom = pygame.mixer.Sound('Music/explosion.wav')
 
 music = pygame.mixer.music.load('Music/musicafundo.wav')
 pygame.mixer.music.set_volume(0.13)
@@ -583,7 +700,7 @@ while True:
             pygame.quit()
             exit()
         if event.type == KEYDOWN and start and dallas.life >= 1:
-            if event.key == pygame.K_p:
+            if event.key == pygame.K_p or event.key == pygame.K_ESCAPE:
                 pygame.mixer.Sound.play(startm)
                 if pause:
                     pause = False
@@ -594,33 +711,39 @@ while True:
         if dallas.life >= 1:
             
             tela.blit(imagem_fundo, (0,0))
+
+            if dallas.bonusboss > deathbosscheck:
+                if explosion.atual >= 12.9:
+                    explosion.atual = 0
+                    deathbosscheck = dallas.bonusboss
+                score = 0
+                explosion_s.draw(tela)
+                explosion.update()
             
             if dallas.points < -1:
                 dallas.life = 0
-            elif dallas.points >= 10000:
-                difc = [1,0,0]
-                dallas.regeneration = 0.2
-            elif dallas.points >= 7000:
-                difc = [12,155,280]
-                dallas.regeneration = 0.2
-            elif dallas.points >= 5000:
-                difc = [13,170,290]
-                dallas.regeneration = 0.1
+            elif dallas.points >= 4000:
+                boss = True
+                difc = [0,0,0]
+                dallas.regeneration = 0
             elif dallas.points >= 3500:
-                difc = [14,195,300]
+                difc = [14,270,450]
                 dallas.regeneration = 0.1
             elif dallas.points >= 2000:
-                difc = [15,200,310]
+                difc = [15,300,500]
                 dallas.regeneration = 0.05
             elif dallas.points >= 1000:
-                difc = [15,210,0]
+                difc = [15,330,0]
                 dallas.regeneration = 0.05
             else:
-                difc = [10,0,0]
+                boss = False
+                bosscount = 0
+                difc = [12,0,0]
                 dallas.regeneration = 0
             
             if dallas.points > score:
                 score = dallas.points
+            print(score, dallas.bonusboss, dallas.bonusboss+score)
                 
             dallas_s.draw(tela)
             gun_s.draw(tela)
@@ -628,6 +751,7 @@ while True:
             ufoshield_s.draw(tela)
             ufoball_s.draw(tela)
             ufo_s.draw(tela)
+            ufoboss_s.draw(tela)
             bullet.draw(tela)
             life_s.draw(tela)
             floor_s.draw(tela)
@@ -638,20 +762,27 @@ while True:
                 ufoaxe_s.update()
                 ufoball_s.update()
                 ufo_s.update()
+                ufoboss_s.update(score)
                 life.update()
                 bullet.update()
 
                 gun_s = pygame.sprite.Group()
                 gun_s.add(dallas.gun())
 
-                if randint(0,difc[0]) == 1:
-                    ufo_s.add(ufo.spawn())
-                if randint(0,difc[1]) == 1:
-                    ufoaxe_s.add(ufoaxe.spawn())
-                if randint(0,difc[1]) == 1:
-                    ufoshield_s.add(ufoshield.spawn())
-                if randint(0,difc[2]) == 1:
-                    ufoball_s.add(ufoball.spawn())
+                if boss:
+                    if bosscount == 0:
+                        ufoboss_s.add(ufoboss.spawn())
+                        bosscount += 1
+                        print("boss chegou")
+                else:
+                    if randint(0,difc[0]) == 1:
+                        ufo_s.add(ufo.spawn())
+                    if randint(0,difc[1]) == 1:
+                        ufoaxe_s.add(ufoaxe.spawn())
+                    if randint(0,difc[1]) == 1:
+                        ufoshield_s.add(ufoshield.spawn())
+                    if randint(0,difc[2]) == 1:
+                        ufoball_s.add(ufoball.spawn())
 
             if dallas.points <= 9999:
                 points_dallas = dallas.points//10
@@ -669,7 +800,7 @@ while True:
         else:
             tela.blit(fim_de_jogo, (0,0))
             
-            score_text = f'Score: {score}'
+            score_text = f'Score: {score+dallas.bonusboss}'
             formatted_score_text = font_score.render(score_text, True, (255,240,240))
             tela.blit(formatted_score_text, (160,320))
             
@@ -677,6 +808,7 @@ while True:
             ufoaxe_s = pygame.sprite.Group()
             ufoshield_s = pygame.sprite.Group()
             ufoball_s = pygame.sprite.Group()
+            ufoboss_s = pygame.sprite.Group()
             bullet = pygame.sprite.Group()
                                                 
             dallas.rect.x = 260
@@ -686,7 +818,11 @@ while True:
                          
             if pygame.key.get_pressed()[K_SPACE]:
                 pygame.mixer.Sound.play(startm)
+                deathbosscheck = 0
+                boss = False
+                bosscount = 0
                 score = 0
+                dallas.bonusboss = 0
                 dallas.life = 100
                 dallas.points = 0
 
