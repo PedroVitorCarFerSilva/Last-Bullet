@@ -22,4 +22,5 @@
 - Não permita que os extra-terrestres fiquem por muito tempo no chão, pois você perderá *pontos*
 - Caso seus *pontos* sejam menores que zero, seu personagem perderá a batalha
 - Não deixe os *UFOs* encostarem no personagem, caso contrário ele perderá *vida* e eventualmente morrerá
+- Recolha os *corações*, que podem ser deixados pelos inimigos, para recuperar sua *vida*
 - Acumule o máximo de *pontos* que conseguir para que seu *score* final aumente
