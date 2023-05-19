@@ -39,13 +39,14 @@ class Dallas(pygame.sprite.Sprite):
         self.points = 0
         self.hitcooldown = 0
         self.shotcooldown = 0
-        self.regeneration = 0
         self.movleft = False
         self.movright = False
         self.dano = 1
         self.framespeed = 0.4
         self.flip = False
         self.bonusboss = 0
+        self.handcount = 0
+        self.baladano = 25
 
     def movemento(self):
         self.movleft = False
@@ -80,17 +81,12 @@ class Dallas(pygame.sprite.Sprite):
         if self.shotcooldown > 0:
             self.shotcooldown -=1
 
-    def regeneracao (self):
-        if self.life < 100:
-            self.life += self.regeneration
-
     def update(self):
         if self.movleft == False and self.movright == False:
             self.dano = 4
         self.movemento()
         self.imunidade()
         self.recuo()
-        self.regeneracao()
         self.atual += self.framespeed
         if self.atual >= len(self.sprites) - self.dano:
             self.atual = 0
@@ -210,6 +206,51 @@ class Bullet(pygame.sprite.Sprite):
         self.b += self.sen
         self.rect.centerx = int(self.a)
         self.rect.centery = int(self.b)
+
+class Heart(pygame.sprite.Sprite):
+    def __init__(self, x, y, r, s):
+        super().__init__()
+        self.sprites = []
+        sprite_sheet = pygame.image.load('Dallas/heart.png')
+        for i in range(8):
+            sheet = sprite_sheet.subsurface((i * 12,0),(12,12))
+            self.sprites.append(sheet)
+        self.atual = 0
+        self.image = self.sprites[self.atual]
+        self.image = pygame.transform.scale(self.image,(12*s, 12*s))
+        self.rect = self.image.get_rect(center = (x,y))
+        self.framespeed = 0.2
+        self.collide = True
+        self.speed = 10
+        self.float = 8
+        self.an = 0
+        self.regeneration = r
+        self.size = s
+
+    def spawn(self, x, y, r, s):
+        return Heart(x, y, r, s)
+        
+    def update(self):
+        if self.rect.colliderect(dallas.rect):
+            pygame.mixer.Sound.play(startm)
+            dallas.life += self.regeneration
+            if dallas.life > 100:
+                dallas.life = 100
+            self.kill()
+
+        if self.rect.centery >= 310:
+            self.an += 10
+            seno = math.sin(math.radians(self.an))
+            self.rect.centery = seno*self.float+320
+        else:
+            self.rect.centery += self.speed
+        
+        self.atual += self.framespeed
+        if self.atual >= len(self.sprites):
+            self.atual = 0
+            pass
+        self.image = self.sprites[int(self.atual)]
+        self.image = pygame.transform.scale(self.image,(12*self.size, 12*self.size))
       
 class Ufo(pygame.sprite.Sprite):
     def __init__(self, a_ufo, b_ufo):
@@ -238,9 +279,9 @@ class Ufo(pygame.sprite.Sprite):
                 pass
         else:
             if self.rect.y <= 290:
-                if self.rect.x < dallas.rect.x:
+                if self.rect.x < dallas.rect.x-5:
                     self.rect.x += self.speed
-                elif self.rect.x > dallas.rect.x:
+                elif self.rect.x > dallas.rect.x+5:
                     self.rect.x -= self.speed
                 self.rect.y += self.downspeed
             else:
@@ -253,7 +294,7 @@ class Ufo(pygame.sprite.Sprite):
         if self.collide:
             if pygame.sprite.spritecollide(self, bullet, True):
                 pygame.mixer.Sound.play(destroy)
-                self.life -= 25
+                self.life -= dallas.baladano
                 if self.life==0:
                     self.atual = 0
         if self.life <= 0:
@@ -307,10 +348,19 @@ class UfoAxe(pygame.sprite.Sprite):
 
         self.dano = 1
 
+        self.heart = 1
+
     def action(self):
-        if self.rect.x < dallas.rect.x:
+        
+        if boss:
+            self.rect.y -= self.downspeed*2
+            if self.rect.y < -100:
+                self.kill()
+                pass
+
+        if self.rect.x < dallas.rect.x-6:
             self.rect.x += self.speed
-        elif self.rect.x > dallas.rect.x:
+        elif self.rect.x > dallas.rect.x+6:
             self.rect.x -= self.speed
         if self.rect.y <= 230:
             self.rect.y += self.downspeed
@@ -327,10 +377,11 @@ class UfoAxe(pygame.sprite.Sprite):
                 self.dano = 0
                 self.atual = 4
                 pygame.mixer.Sound.play(destroy)
-                self.life -= 25
+                self.life -= dallas.baladano
                 if self.life==0:
                     self.atual = 0
         if self.life <= 0:
+            self.heart -= 1
             self.collide = False
             self.speed = 0
             self.downspeed = 0
@@ -341,7 +392,7 @@ class UfoAxe(pygame.sprite.Sprite):
                 sheet = sprite_sheet.subsurface((i * 45,33),(45,33))
                 self.sprites.append(sheet)
             if self.atual >= len(self.sprites)-1:
-                dallas.points += 25
+                dallas.points += 75
                 self.kill()
                 pass
             
@@ -367,7 +418,7 @@ class UfoShield(pygame.sprite.Sprite):
         self.atual = 0
         self.image = self.sprites[self.atual]
         self.image = pygame.transform.scale(self.image,(44*3, 32*3))
-        self.life = 100
+        self.life = 75
 
         self.speed = randint(1,3)
         self.downspeed = randint(3,5)
@@ -379,10 +430,19 @@ class UfoShield(pygame.sprite.Sprite):
 
         self.dano = 1
 
+        self.heart = 1
+
     def action(self):
-        if self.rect.x < dallas.rect.x:
+        
+        if boss:
+            self.rect.y -= self.downspeed*2
+            if self.rect.y < -100:
+                self.kill()
+                pass
+        
+        if self.rect.x < dallas.rect.x-6:
             self.rect.x += self.speed
-        elif self.rect.x > dallas.rect.x:
+        elif self.rect.x > dallas.rect.x+6:
             self.rect.x -= self.speed
         if self.rect.y <= 230:
             self.rect.y += self.downspeed
@@ -399,10 +459,11 @@ class UfoShield(pygame.sprite.Sprite):
                 self.dano = 0
                 self.atual = 4
                 pygame.mixer.Sound.play(destroy)
-                self.life -= 25
+                self.life -= dallas.baladano
                 if self.life==0:
                     self.atual = 0
         if self.life <= 0:
+            self.heart -= 1
             self.collide = False
             self.speed = 0
             self.downspeed = 0
@@ -413,7 +474,7 @@ class UfoShield(pygame.sprite.Sprite):
                 sheet = sprite_sheet.subsurface((i * 44,32),(44,32))
                 self.sprites.append(sheet)
             if self.atual >= len(self.sprites)-1:
-                dallas.points += 25
+                dallas.points += 75
                 self.kill()
                 pass
             
@@ -452,7 +513,9 @@ class UfoBall(pygame.sprite.Sprite):
 
         self.collide = True
         self.framespeed = 0.2
-        self.dano = 1
+        self.dano = 2
+
+        self.heart = 1
 
     def action(self):
         if self.rect.y < 275:
@@ -461,11 +524,11 @@ class UfoBall(pygame.sprite.Sprite):
             elif self.rect.x > dallas.rect.x:
                 self.rect.x -= self.speed
             self.rect.y += self.downspeed
-        elif self.rect.y == 275:
+        elif self.rect.y == 275 and self.life > 0:
             self.sprites = self.zenmode
             self.rect.y += 2
-            self.life += 75
-        if self.rect.colliderect(dallas.rect) and dallas.hitcooldown == 0:
+            self.life += 50
+        if self.rect.colliderect(dallas.rect) and dallas.hitcooldown == 0 and self.collide:
             dallas.life -= 10
             dallas.hitcooldown = 10
 
@@ -478,10 +541,11 @@ class UfoBall(pygame.sprite.Sprite):
                 else:
                     self.atual = 8
                 pygame.mixer.Sound.play(destroy)
-                self.life -= 25
+                self.life -= dallas.baladano
                 if self.life==0:
                     self.atual = 0
         if self.life <= 0:
+            self.heart -= 1
             self.collide = False
             self.speed = 0
             self.downspeed = 0
@@ -492,7 +556,7 @@ class UfoBall(pygame.sprite.Sprite):
                 sheet = sprite_sheet.subsurface((i * 48,25),(48,25))
                 self.sprites.append(sheet)
             if self.atual >= len(self.sprites)-1:
-                dallas.points += 25
+                dallas.points += 125
                 self.kill()
                 pass
 
@@ -522,7 +586,7 @@ class UfoBoss(pygame.sprite.Sprite):
         self.atual = 0
         self.image = self.sprites[self.atual]
         self.image = pygame.transform.scale(self.image,(32*self.size, 32*self.size))
-        self.life = 200
+        self.life = 100
         
         self.float = 8
         self.an = 0
@@ -532,10 +596,12 @@ class UfoBoss(pygame.sprite.Sprite):
         
         self.rect = self.image.get_rect(center = (a_ufobs,b_ufobs))
 
-        self.collide = True
+        self.collide = False
         self.framespeed = 0.2
 
         self.dano = 1
+
+        self.heart = 1
         
     def action(self):
         if self.died:
@@ -550,6 +616,8 @@ class UfoBoss(pygame.sprite.Sprite):
                 self.rect.centery = seno*self.float+100
             else:
                 self.rect.centery += 5
+        if dallas.handcount <= 0:
+            self.collide = True
 
     def spawn(self):
         return UfoBoss(largura/2, -110)
@@ -560,10 +628,12 @@ class UfoBoss(pygame.sprite.Sprite):
                 self.dano = 0
                 self.atual = 4
                 pygame.mixer.Sound.play(destroy)
-                self.life -= 25
+                self.life -= dallas.baladano
                 if self.life==0:
+                    dallas.handcount = 2
                     self.atual = 0
         if self.life <= 0:
+            self.heart -= 1
             self.died = True
             self.size -= 0.09
             if self.rect.centery >= 400:
@@ -584,6 +654,305 @@ class UfoBoss(pygame.sprite.Sprite):
         self.image = self.sprites[int(self.atual)]
         self.image = pygame.transform.scale(self.image,(32*self.size, 32*self.size))
         self.image = pygame.transform.rotate(self.image, self.rotation)
+
+class UfoHandRight(pygame.sprite.Sprite):
+    def __init__(self, a_ufos, b_ufos):
+        super().__init__()
+        self.sprites = []
+        sprite_sheet = pygame.image.load('Ufo/ufohand.png')
+        self.sprites.append(sprite_sheet.subsurface((0,0),(20,20)))
+        self.sprites.append(sprite_sheet.subsurface((80,0),(20,20)))
+        self.atual = 0
+        self.image = self.sprites[self.atual]
+        self.image = pygame.transform.scale(self.image,(20*4, 20*4))
+        self.life = 500
+
+        self.speed = 0
+        self.downspeed = 8
+        
+        self.rect = self.image.get_rect(center = (a_ufos,b_ufos))
+
+        self.collide = True
+        self.framespeed = 0.4
+
+        self.dano = 1
+        self.prepare = 14
+
+        self.coming = True
+        self.seeking = False
+        self.aiming = False
+        self.attacking = False
+        self.returning = False
+
+    def action(self):
+
+        self.rect.centery += self.downspeed
+        self.rect.centerx += self.speed
+        
+        if self.coming:
+            self.downspeed = 8
+            self.speed = 0
+            if self.rect.centery >= 190:
+                self.seeking = True
+                self.coming = False
+
+        if self.seeking:
+            self.sprites = []
+            sprite_sheet = pygame.image.load('Ufo/ufohand.png')
+            self.sprites.append(sprite_sheet.subsurface((0,0),(20,20)))
+            self.sprites.append(sprite_sheet.subsurface((80,0),(20,20)))
+            self.downspeed = 0
+            if self.rect.centerx > dallas.rect.centerx + 8:
+                self.speed = -10
+            elif self.rect.centerx < dallas.rect.centerx - 8:
+                self.speed = 6
+            else:
+                self.speed = 0
+                self.aiming = True
+                self.seeking = False
+
+        if self.aiming:
+            self.prepare -= 1
+            self.framespeed = 0.3
+            self.sprites = []
+            sprite_sheet = pygame.image.load('Ufo/ufohand.png')
+            for i in range(5):
+                sheet = sprite_sheet.subsurface((i * 20,0),(20,20))
+                self.sprites.append(sheet)
+            if self.prepare == 0 or self.atual >= 3.5:
+                self.atual = 0
+                self.attacking = True
+                self.aiming = False
+
+        if self.attacking:
+            self.prepare = 14
+            self.framespeed = 0.4
+            self.sprites = []
+            sprite_sheet = pygame.image.load('Ufo/ufohand.png')
+            for i in range(6):
+                sheet = sprite_sheet.subsurface((i * 20,40),(20,20))
+                self.sprites.append(sheet)
+            self.downspeed = 15
+            if self.rect.centery >= 310:
+                pygame.mixer.Sound.play(boom)
+                self.rect.centery = 310
+                self.returning = True
+                self.attacking = False
+
+        if self.returning:
+            self.framespeed = 0.15
+            self.sprites = []
+            sprite_sheet = pygame.image.load('Ufo/ufohand.png')
+            self.sprites.append(sprite_sheet.subsurface((80,40),(20,20)))
+            self.sprites.append(sprite_sheet.subsurface((60,40),(20,20)))
+            self.sprites.append(sprite_sheet.subsurface((40,40),(20,20)))
+            self.sprites.append(sprite_sheet.subsurface((20,40),(20,20)))
+            self.sprites.append(sprite_sheet.subsurface((0,40),(20,20)))
+            self.sprites.append(sprite_sheet.subsurface((100,40),(20,20)))
+            self.downspeed = -5
+            if self.rect.centery >= 310:
+                self.atual = 0
+            if self.rect.centery <= 190:
+                self.framespeed = 0.4
+                self.seeking = True
+                self.returning = False
+        
+        if self.rect.colliderect(dallas.rect) and dallas.hitcooldown == 0:
+            dallas.life -= 30
+            dallas.hitcooldown = 10
+
+    def spawn(self):
+        return UfoHandRight(largura/3, -80)
+
+    def morte(self):
+        if self.collide:
+            if pygame.sprite.spritecollide(self, bullet, True):
+                self.dano = 0
+                self.atual = len(self.sprites)-1
+                pygame.mixer.Sound.play(destroy)
+                self.life -= dallas.baladano
+                if self.life==0:
+                    self.atual = 0
+        if self.life <= 0:
+            self.collide = False
+            self.speed = 0
+            self.downspeed = 0
+            self.framespeed = 0.5
+            sprite_sheet = pygame.image.load('Ufo/ufohand.png')
+            self.sprites = []
+            if self.coming or self.seeking or self.aiming:
+                for i in range(7):
+                    sheet = sprite_sheet.subsurface((i * 20,20),(20,20))
+                    self.sprites.append(sheet)
+            elif self.attacking or self.returning:
+                for i in range(7):
+                    sheet = sprite_sheet.subsurface((i * 20,60),(20,20))
+                    self.sprites.append(sheet)
+            if self.atual >= len(self.sprites)-1:
+                dallas.handcount -= 1
+                self.kill()
+                pass
+            
+    def update(self):
+        self.action()
+        self.morte()
+        self.atual += self.framespeed
+        if self.atual >= len(self.sprites) - self.dano:
+            self.atual = 0
+            self.dano = 1
+            pass
+        self.image = self.sprites[int(self.atual)]
+        self.image = pygame.transform.scale(self.image,(20*4, 20*4))
+
+class UfoHandLeft(pygame.sprite.Sprite):
+    def __init__(self, a_ufos, b_ufos):
+        super().__init__()
+        self.sprites = []
+        sprite_sheet = pygame.image.load('Ufo/ufohand.png')
+        self.sprites.append(sprite_sheet.subsurface((0,0),(20,20)))
+        self.sprites.append(sprite_sheet.subsurface((80,0),(20,20)))
+        self.atual = 0
+        self.image = self.sprites[self.atual]
+        self.image = pygame.transform.scale(self.image,(20*4, 20*4))
+        self.life = 500
+
+        self.speed = 0
+        self.downspeed = 8
+        
+        self.rect = self.image.get_rect(center = (a_ufos,b_ufos))
+
+        self.collide = True
+        self.framespeed = 0.4
+
+        self.dano = 1
+        self.prepare = 14
+
+        self.coming = True
+        self.seeking = False
+        self.aiming = False
+        self.attacking = False
+        self.returning = False
+
+    def action(self):
+
+        self.rect.centery += self.downspeed
+        self.rect.centerx += self.speed
+        
+        if self.coming:
+            self.downspeed = 8
+            self.speed = 0
+            if self.rect.centery >= 190:
+                self.seeking = True
+                self.coming = False
+
+        if self.seeking:
+            self.sprites = []
+            sprite_sheet = pygame.image.load('Ufo/ufohand.png')
+            self.sprites.append(sprite_sheet.subsurface((0,0),(20,20)))
+            self.sprites.append(sprite_sheet.subsurface((80,0),(20,20)))
+            self.downspeed = 0
+            if self.rect.centerx > dallas.rect.centerx + 8:
+                self.speed = -6
+            elif self.rect.centerx < dallas.rect.centerx - 8:
+                self.speed = 10
+            else:
+                self.speed = 0
+                self.aiming = True
+                self.seeking = False
+
+        if self.aiming:
+            self.prepare -= 1
+            self.framespeed = 0.3
+            self.sprites = []
+            sprite_sheet = pygame.image.load('Ufo/ufohand.png')
+            for i in range(5):
+                sheet = sprite_sheet.subsurface((i * 20,0),(20,20))
+                self.sprites.append(sheet)
+            if self.prepare == 0 or self.atual >= 3.5:
+                self.atual = 0
+                self.attacking = True
+                self.aiming = False
+
+        if self.attacking:
+            self.prepare = 14
+            self.framespeed = 0.4
+            self.sprites = []
+            sprite_sheet = pygame.image.load('Ufo/ufohand.png')
+            for i in range(6):
+                sheet = sprite_sheet.subsurface((i * 20,40),(20,20))
+                self.sprites.append(sheet)
+            self.downspeed = 15
+            if self.rect.centery >= 310:
+                pygame.mixer.Sound.play(boom)
+                self.rect.centery = 310
+                self.returning = True
+                self.attacking = False
+
+        if self.returning:
+            self.framespeed = 0.15
+            self.sprites = []
+            sprite_sheet = pygame.image.load('Ufo/ufohand.png')
+            self.sprites.append(sprite_sheet.subsurface((80,40),(20,20)))
+            self.sprites.append(sprite_sheet.subsurface((60,40),(20,20)))
+            self.sprites.append(sprite_sheet.subsurface((40,40),(20,20)))
+            self.sprites.append(sprite_sheet.subsurface((20,40),(20,20)))
+            self.sprites.append(sprite_sheet.subsurface((0,40),(20,20)))
+            self.sprites.append(sprite_sheet.subsurface((100,40),(20,20)))
+            self.downspeed = -5
+            if self.rect.centery >= 310:
+                self.atual = 0
+            if self.rect.centery <= 190:
+                self.framespeed = 0.4
+                self.seeking = True
+                self.returning = False
+        
+        if self.rect.colliderect(dallas.rect) and dallas.hitcooldown == 0:
+            dallas.life -= 10
+            dallas.hitcooldown = 10
+
+    def spawn(self):
+        return UfoHandLeft(largura/1.5, -80)
+
+    def morte(self):
+        if self.collide:
+            if pygame.sprite.spritecollide(self, bullet, True):
+                self.dano = 0
+                self.atual = len(self.sprites)-1
+                pygame.mixer.Sound.play(destroy)
+                self.life -= dallas.baladano
+                if self.life==0:
+                    self.atual = 0
+        if self.life <= 0:
+            self.collide = False
+            self.speed = 0
+            self.downspeed = 0
+            self.framespeed = 0.5
+            sprite_sheet = pygame.image.load('Ufo/ufohand.png')
+            self.sprites = []
+            if self.coming or self.seeking or self.aiming:
+                for i in range(7):
+                    sheet = sprite_sheet.subsurface((i * 20,20),(20,20))
+                    self.sprites.append(sheet)
+            elif self.attacking or self.returning:
+                for i in range(7):
+                    sheet = sprite_sheet.subsurface((i * 20,60),(20,20))
+                    self.sprites.append(sheet)
+            if self.atual >= len(self.sprites)-1:
+                dallas.handcount -= 1
+                self.kill()
+                pass
+            
+    def update(self):
+        self.action()
+        self.morte()
+        self.atual += self.framespeed
+        if self.atual >= len(self.sprites) - self.dano:
+            self.atual = 0
+            self.dano = 1
+            pass
+        self.image = self.sprites[int(self.atual)]
+        self.image = pygame.transform.scale(self.image,(20*4, 20*4))
+        self.image = pygame.transform.flip(self.image,True,False)
 
 class Explosion(pygame.sprite.Sprite):
     def __init__(self):
@@ -635,7 +1004,16 @@ ufoball_s = pygame.sprite.Group()
 ufoboss = UfoBoss(largura/2, 110)
 ufoboss_s = pygame.sprite.Group()
 
+ufohandr = UfoHandRight(largura/3, -85)
+ufohandr_s = pygame.sprite.Group()
+
+ufohandl = UfoHandLeft(largura/1.5, -85)
+ufohandl_s = pygame.sprite.Group()
+
 bullet = pygame.sprite.Group()
+
+heart = Heart(largura/2, 0, 25, 3)
+heart_s = pygame.sprite.Group()
 
 explosion = Explosion()
 explosion_s = pygame.sprite.Group()
@@ -654,8 +1032,6 @@ gun_s = pygame.sprite.Group()
 aim = Aim(pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
 aim_s = pygame.sprite.Group()
 aim_s.add(aim)
-
-print(pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
 
 floor_s = pygame.sprite.Group()
 for i in range(10):
@@ -677,16 +1053,19 @@ font_score = pygame.font.SysFont('powergreensmall',60,True,False)
 start = False
 pause = False
 
-bosscount = 2
+bosscount = 0
 deathbosscheck = 0
 
 score = 0
+
+morreukk = 0
 
 shoot = pygame.mixer.Sound('Music/shoot.wav')
 destroy = pygame.mixer.Sound('Music/destroy.wav')
 startm = pygame.mixer.Sound('Music/start.wav')
 takehit = pygame.mixer.Sound('Music/hit.wav')
 boom = pygame.mixer.Sound('Music/explosion.wav')
+died = pygame.mixer.Sound('Music/death.wav')
 
 music = pygame.mixer.music.load('Music/musicafundo.wav')
 pygame.mixer.music.set_volume(0.13)
@@ -725,25 +1104,20 @@ while True:
             elif dallas.points >= 4000:
                 boss = True
                 difc = [0,0,0]
-                dallas.regeneration = 0
             elif dallas.points >= 3500:
                 difc = [14,270,450]
-                dallas.regeneration = 0.1
             elif dallas.points >= 2000:
                 difc = [15,300,500]
-                dallas.regeneration = 0.05
             elif dallas.points >= 1000:
                 difc = [15,330,0]
-                dallas.regeneration = 0.05
             else:
                 boss = False
                 bosscount = 0
+                dallas.handcount = 0
                 difc = [12,0,0]
-                dallas.regeneration = 0
             
             if dallas.points > score:
                 score = dallas.points
-            print(score, dallas.bonusboss, dallas.bonusboss+score)
                 
             dallas_s.draw(tela)
             gun_s.draw(tela)
@@ -752,10 +1126,13 @@ while True:
             ufoball_s.draw(tela)
             ufo_s.draw(tela)
             ufoboss_s.draw(tela)
+            ufohandr_s.draw(tela)
+            ufohandl_s.draw(tela)
+            heart_s.draw(tela)
             bullet.draw(tela)
             life_s.draw(tela)
             floor_s.draw(tela)
-            
+
             if pause == False:
                 dallas.update()
                 ufoshield_s.update()
@@ -763,6 +1140,9 @@ while True:
                 ufoball_s.update()
                 ufo_s.update()
                 ufoboss_s.update(score)
+                ufohandr_s.update()
+                ufohandl_s.update()
+                heart_s.update()
                 life.update()
                 bullet.update()
 
@@ -773,7 +1153,9 @@ while True:
                     if bosscount == 0:
                         ufoboss_s.add(ufoboss.spawn())
                         bosscount += 1
-                        print("boss chegou")
+                        ufohandr_s.add(ufohandr.spawn())
+                        ufohandl_s.add(ufohandl.spawn())
+                        dallas.handcount += 2
                 else:
                     if randint(0,difc[0]) == 1:
                         ufo_s.add(ufo.spawn())
@@ -783,7 +1165,23 @@ while True:
                         ufoshield_s.add(ufoshield.spawn())
                     if randint(0,difc[2]) == 1:
                         ufoball_s.add(ufoball.spawn())
-
+                        
+                for u in ufoshield_s:
+                    if u.heart == 0:
+                        if randint(0,4) == 1:
+                            heart_s.add(heart.spawn(u.rect.centerx, u.rect.centery, 25, 3))
+                for u in ufoaxe_s:
+                    if u.heart == 0:
+                        if randint(0,4) == 1:
+                            heart_s.add(heart.spawn(u.rect.centerx, u.rect.centery, 25, 3))
+                for u in ufoball_s:
+                    if u.heart == 0:
+                        if randint(0,3) == 1:
+                            heart_s.add(heart.spawn(u.rect.centerx, u.rect.centery, 25, 3))
+                for u in ufoboss_s:
+                    if u.heart == 0:
+                        heart_s.add(heart.spawn(u.rect.centerx, u.rect.centery, 100, 4))
+                        
             if dallas.points <= 9999:
                 points_dallas = dallas.points//10
                 points_text = f'Points: {points_dallas}'
@@ -793,10 +1191,10 @@ while True:
                 fract_points = (dallas.points%10000)//1000
                 points_text = f'Points: {points_dallas}.{fract_points}K'
                 points_local = 385
-                
+            
             formatted_points_text = font_points.render(points_text, True, (39,39,54))
             tela.blit(formatted_points_text, (points_local,28))
-                
+
         else:
             tela.blit(fim_de_jogo, (0,0))
             
@@ -809,12 +1207,19 @@ while True:
             ufoshield_s = pygame.sprite.Group()
             ufoball_s = pygame.sprite.Group()
             ufoboss_s = pygame.sprite.Group()
+            ufohandr_s = pygame.sprite.Group()
+            ufohandl_s = pygame.sprite.Group()
             bullet = pygame.sprite.Group()
+            heart_s = pygame.sprite.Group()
                                                 
             dallas.rect.x = 260
 
             dallas.hitcooldown = 0
             dallas.shotcooldown = 0
+
+            morreukk += 0.0001
+            if morreukk == 0.0001:
+                pygame.mixer.Sound.play(died)
                          
             if pygame.key.get_pressed()[K_SPACE]:
                 pygame.mixer.Sound.play(startm)
@@ -825,6 +1230,8 @@ while True:
                 dallas.bonusboss = 0
                 dallas.life = 100
                 dallas.points = 0
+                dallas.handcount = 0
+                morreukk = 0
 
     else:
         tela.blit(titulo, (0,0))
